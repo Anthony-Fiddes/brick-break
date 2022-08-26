@@ -28,6 +28,16 @@ func (e *Entity) Draw(screen *ebiten.Image) {
 	screen.DrawImage(e.Sprite, options)
 }
 
+func (e *Entity) Width() float64 {
+	result := e.Sprite.Bounds().Dx()
+	return float64(result)
+}
+
+func (e *Entity) Height() float64 {
+	result := e.Sprite.Bounds().Dy()
+	return float64(result)
+}
+
 type Player struct {
 	Entity
 }
@@ -43,9 +53,8 @@ func playerSprite() *ebiten.Image {
 func NewPlayer() Player {
 	player := Player{}
 	player.Sprite = playerSprite()
-	bounds := player.Sprite.Bounds()
 	// start at the bottom left
-	player.Y += float64(screenHeight - bounds.Dy())
+	player.Y += float64(screenHeight - player.Height())
 	return player
 }
 
@@ -54,11 +63,23 @@ func (p *Player) Update() error {
 	leftPressed := ebiten.IsKeyPressed(ebiten.KeyArrowLeft)
 	rightPressed := ebiten.IsKeyPressed(ebiten.KeyArrowRight)
 	if leftPressed && rightPressed {
-		return nil	
+		return nil
 	} else if leftPressed {
-		p.X -= playerVelocity
+		nextX := p.X - playerVelocity
+		if nextX >= 0 {
+			p.X = nextX
+		} else {
+			// Allows the player to lock to the side of the screen
+			p.X = 0
+		}
 	} else if rightPressed {
-		p.X += playerVelocity
+		// mirror of leftPressed
+		nextX := p.X + playerVelocity
+		if nextX <= screenWidth-p.Width() {
+			p.X = nextX
+		} else {
+			p.X = screenWidth - p.Width()
+		}
 	}
 	return nil
 }
@@ -98,7 +119,7 @@ func NewGame() *Game {
 func main() {
 	// Specify the window size as you like. Here, a doubled size is specified.
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
-	ebiten.SetWindowTitle("Pong")
+	ebiten.SetWindowTitle("Brick Break")
 	game := NewGame()
 	// Call ebiten.RunGame to start your game loop.
 	if err := ebiten.RunGame(game); err != nil {
