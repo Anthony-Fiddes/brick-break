@@ -42,30 +42,14 @@ type Player struct {
 	Entity
 }
 
-func playerSprite() *ebiten.Image {
-	const playerWidth = screenWidth / 15
-	const playerHeight = screenHeight / 30
-	sprite := ebiten.NewImage(playerWidth, playerHeight)
-	sprite.Fill(color.White)
-	return sprite
-}
-
-func NewPlayer() Player {
-	player := Player{}
-	player.Sprite = playerSprite()
-	// start at the bottom left
-	player.Y += float64(screenHeight - player.Height())
-	return player
-}
-
-func (p *Player) Update() error {
-	const playerVelocity = screenWidth / 100
+func (p *Player) Update() {
+	const playerSpeed = screenWidth / 100
 	leftPressed := ebiten.IsKeyPressed(ebiten.KeyArrowLeft)
 	rightPressed := ebiten.IsKeyPressed(ebiten.KeyArrowRight)
 	if leftPressed && rightPressed {
-		return nil
+		return
 	} else if leftPressed {
-		nextX := p.X - playerVelocity
+		nextX := p.X - playerSpeed
 		if nextX >= 0 {
 			p.X = nextX
 		} else {
@@ -74,28 +58,106 @@ func (p *Player) Update() error {
 		}
 	} else if rightPressed {
 		// mirror of leftPressed
-		nextX := p.X + playerVelocity
+		nextX := p.X + playerSpeed
 		if nextX <= screenWidth-p.Width() {
 			p.X = nextX
 		} else {
 			p.X = screenWidth - p.Width()
 		}
 	}
-	return nil
+	return
+}
+
+func NewPlayer() Player {
+	player := Player{}
+	const playerWidth = screenWidth / 15
+	const playerHeight = screenHeight / 30
+	sprite := ebiten.NewImage(playerWidth, playerHeight)
+	sprite.Fill(color.White)
+	player.Sprite = sprite
+	// start at the bottom left
+	player.Y += float64(screenHeight - player.Height())
+	return player
+}
+
+type Ball struct {
+	XSpeed float64
+	YSpeed float64
+	Entity
+}
+
+func (b *Ball) Update() {
+	nextX := b.X + b.XSpeed
+	// Check bounds
+	if nextX < 0 {
+		b.X = 0
+		b.XSpeed *= -1
+	} else if nextX > screenWidth-b.Width() {
+		b.X = screenWidth - b.Width()
+		b.XSpeed *= -1
+	} else {
+		b.X = nextX
+	}
+
+	// mirror of X
+	nextY := b.Y + b.YSpeed
+	if nextY < 0 {
+		b.Y = 0
+		b.YSpeed *= -1
+	} else if nextY > screenHeight-b.Height() {
+		b.Y = screenHeight - b.Height()
+		b.YSpeed *= -1
+	} else {
+		b.Y = nextY
+	}
+}
+
+func NewBall() Ball {
+	const ballXSpeed = screenWidth / 150
+	const ballYSpeed = screenWidth / 150
+	ball := Ball{XSpeed: ballXSpeed, YSpeed: ballYSpeed}
+	const ballWidth = screenWidth / 40
+	const ballHeight = screenHeight / 40
+	sprite := ebiten.NewImage(ballWidth, ballHeight)
+	sprite.Fill(color.White)
+	ball.Sprite = sprite
+	ball.X += screenWidth / 2
+	ball.Y += screenHeight / 2
+	return ball
+}
+
+type Brick struct {
+	Entity
+}
+
+func NewBrick() Brick {
+	brick := Brick{}
+	const brickWidth = screenWidth / 20
+	const brickHeight = screenHeight / 30
+	if screenWidth%brickWidth != 0 {
+		log.Printf("bricks will not tile horizontally because the screen width is not divisible by the brick width")
+	}
+	sprite := ebiten.NewImage(brickWidth, brickHeight)
+	sprite.Fill(color.White)
+	brick.Sprite = sprite
+	return Brick{}
+}
+
+func (b *Brick) Update() {
+
 }
 
 // Game implements ebiten.Game interface.
 type Game struct {
 	Player Player
+	Ball   Ball
 }
 
 // Update proceeds the game state.
 // Update is called every tick (1/60 [s] by default).
 func (g *Game) Update() error {
-	err := g.Player.Update()
-	if err != nil {
-		return err
-	}
+	g.Player.Update()
+	g.Ball.Update()
 	return nil
 }
 
@@ -103,6 +165,7 @@ func (g *Game) Update() error {
 // Draw is called every frame (typically 1/60[s] for 60Hz display).
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.Player.Draw(screen)
+	g.Ball.Draw(screen)
 }
 
 // Layout takes the outside size (e.g., the window size) and returns the (logical) screen size.
@@ -112,7 +175,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func NewGame() *Game {
-	game := &Game{Player: NewPlayer()}
+	game := &Game{Player: NewPlayer(), Ball: NewBall()}
 	return game
 }
 
