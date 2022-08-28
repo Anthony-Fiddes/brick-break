@@ -80,6 +80,19 @@ func NewPlayer() Player {
 	return player
 }
 
+// yDownColliding checks if the bottom of entity is colliding with the top of
+// other
+func yDownColliding(entity, other Entity) bool {
+	// Check that entity is within the x bounds of other
+	if entity.X > other.X && entity.X < other.X+other.Width() {
+		// Check that bottom of entity is touching top of other
+		if entity.Y >= other.Y-other.Height() {
+			return true
+		}
+	}
+	return false
+}
+
 type Ball struct {
 	XSpeed float64
 	YSpeed float64
@@ -92,9 +105,11 @@ func (b *Ball) Update() {
 	if nextX < 0 {
 		b.X = 0
 		b.XSpeed *= -1
+		return
 	} else if nextX > screenWidth-b.Width() {
 		b.X = screenWidth - b.Width()
 		b.XSpeed *= -1
+		return
 	} else {
 		b.X = nextX
 	}
@@ -104,12 +119,15 @@ func (b *Ball) Update() {
 	if nextY < 0 {
 		b.Y = 0
 		b.YSpeed *= -1
+		return
 	} else if nextY > screenHeight-b.Height() {
 		b.Y = screenHeight - b.Height()
 		b.YSpeed *= -1
+		return
 	} else {
 		b.Y = nextY
 	}
+
 }
 
 func NewBall() Ball {
@@ -128,29 +146,31 @@ func NewBall() Ball {
 
 type Brick struct {
 	Entity
+	Destroyed bool
 }
+
+func (b *Brick) Draw(screen *ebiten.Image) {
+	if !b.Destroyed {
+		b.Entity.Draw(screen)
+	}
+}
+
+const brickWidth = screenWidth / 20
+const brickHeight = screenHeight / 30
 
 func NewBrick() Brick {
 	brick := Brick{}
-	const brickWidth = screenWidth / 20
-	const brickHeight = screenHeight / 30
-	if screenWidth%brickWidth != 0 {
-		log.Printf("bricks will not tile horizontally because the screen width is not divisible by the brick width")
-	}
 	sprite := ebiten.NewImage(brickWidth, brickHeight)
 	sprite.Fill(color.White)
 	brick.Sprite = sprite
-	return Brick{}
-}
-
-func (b *Brick) Update() {
-
+	return brick
 }
 
 // Game implements ebiten.Game interface.
 type Game struct {
 	Player Player
 	Ball   Ball
+	Bricks []Brick
 }
 
 // Update proceeds the game state.
@@ -158,6 +178,13 @@ type Game struct {
 func (g *Game) Update() error {
 	g.Player.Update()
 	g.Ball.Update()
+
+	// check for ball hitting player paddle
+	if yDownColliding(g.Ball.Entity, g.Player.Entity) {
+		g.Ball.Y = g.Player.Y - g.Player.Height()
+		g.Ball.YSpeed *= -1
+		return nil
+	}
 	return nil
 }
 
@@ -166,6 +193,9 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.Player.Draw(screen)
 	g.Ball.Draw(screen)
+	for i := range g.Bricks {
+		g.Bricks[i].Draw(screen)
+	}
 }
 
 // Layout takes the outside size (e.g., the window size) and returns the (logical) screen size.
@@ -176,10 +206,35 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func NewGame() *Game {
 	game := &Game{Player: NewPlayer(), Ball: NewBall()}
+	// allocate enough space to fill half the screen with bricks
+	numBricks := (screenWidth / brickWidth) * (screenHeight / brickHeight / 2)
+	bricks := make([]Brick, 0, numBricks)
+	for i := 0; i < numBricks; i++ {
+		bricks = append(bricks, NewBrick())
+	}
+	game.Bricks = bricks
+	var currX float64
+	var currY float64
+	for i := range game.Bricks {
+		b := &bricks[i]
+		b.X = currX
+		b.Y = currY
+
+		currX += brickWidth
+		if currX >= screenWidth {
+			currX = 0
+			currY += brickHeight
+		}
+	}
 	return game
 }
 
 func main() {
+	// Debugging
+	if screenWidth%brickWidth != 0 {
+		log.Printf("bricks will not tile horizontally because the screen width is not divisible by the brick width")
+	}
+
 	// Specify the window size as you like. Here, a doubled size is specified.
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
 	ebiten.SetWindowTitle("Brick Break")
