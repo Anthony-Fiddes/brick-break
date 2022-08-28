@@ -79,9 +79,9 @@ func NewPlayer() Player {
 	return player
 }
 
-// yDownColliding checks if the bottom of entity is colliding with the top of
+// downColliding checks if the bottom of entity is colliding with the top of
 // other
-func yDownColliding(entity, other Entity) bool {
+func downColliding(entity, other Entity) bool {
 	// Check that entity is within the x bounds of other
 	if entity.X >= other.X && entity.X <= other.X+other.Width() {
 		// Check that bottom of entity is touching top of other
@@ -179,7 +179,7 @@ func (g *Game) Update() error {
 	g.Ball.Update()
 
 	// check for ball hitting player paddle
-	if yDownColliding(g.Ball.Entity, g.Player.Entity) {
+	if downColliding(g.Ball.Entity, g.Player.Entity) {
 		g.Ball.Y = g.Player.Y - g.Player.Height()
 		g.Ball.YSpeed *= -1
 		return nil
@@ -190,7 +190,7 @@ func (g *Game) Update() error {
 		if brick.Destroyed {
 			continue
 		}
-		if yDownColliding(brick.Entity, g.Ball.Entity) {
+		if downColliding(brick.Entity, g.Ball.Entity) {
 			brick.Destroyed = true
 			g.Ball.Y = brick.Y + brick.Height()
 			g.Ball.YSpeed *= -1
