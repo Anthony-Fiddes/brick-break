@@ -65,13 +65,12 @@ func (p *Player) Update() {
 			p.X = screenWidth - p.Width()
 		}
 	}
-	return
 }
 
 func NewPlayer() Player {
 	player := Player{}
-	const playerWidth = screenWidth / 15
-	const playerHeight = screenHeight / 30
+	const playerWidth = screenWidth / 10
+	const playerHeight = screenHeight / 50
 	sprite := ebiten.NewImage(playerWidth, playerHeight)
 	sprite.Fill(color.White)
 	player.Sprite = sprite
@@ -84,7 +83,7 @@ func NewPlayer() Player {
 // other
 func yDownColliding(entity, other Entity) bool {
 	// Check that entity is within the x bounds of other
-	if entity.X > other.X && entity.X < other.X+other.Width() {
+	if entity.X >= other.X && entity.X <= other.X+other.Width() {
 		// Check that bottom of entity is touching top of other
 		if entity.Y >= other.Y-other.Height() {
 			return true
@@ -184,6 +183,19 @@ func (g *Game) Update() error {
 		g.Ball.Y = g.Player.Y - g.Player.Height()
 		g.Ball.YSpeed *= -1
 		return nil
+	}
+
+	for i := range g.Bricks {
+		brick := &g.Bricks[i]
+		if brick.Destroyed {
+			continue
+		}
+		if yDownColliding(brick.Entity, g.Ball.Entity) {
+			brick.Destroyed = true
+			g.Ball.Y = brick.Y + brick.Height()
+			g.Ball.YSpeed *= -1
+			return nil
+		}
 	}
 	return nil
 }
