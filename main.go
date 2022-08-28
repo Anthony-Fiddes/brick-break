@@ -79,13 +79,13 @@ func NewPlayer() Player {
 	return player
 }
 
-// downColliding checks if the bottom of entity is colliding with the top of
+// bottomColliding checks if the bottom of entity is colliding with the top of
 // other
-func downColliding(entity, other Entity) bool {
+func bottomColliding(entity, other Entity) bool {
 	// Check that entity is within the x bounds of other
 	if entity.X >= other.X && entity.X <= other.X+other.Width() {
 		// Check that bottom of entity is touching top of other
-		if entity.Y >= other.Y-other.Height() {
+		if entity.Y+entity.Height() >= other.Y {
 			return true
 		}
 	}
@@ -179,8 +179,8 @@ func (g *Game) Update() error {
 	g.Ball.Update()
 
 	// check for ball hitting player paddle
-	if downColliding(g.Ball.Entity, g.Player.Entity) {
-		g.Ball.Y = g.Player.Y - g.Player.Height()
+	if bottomColliding(g.Ball.Entity, g.Player.Entity) {
+		g.Ball.Y = g.Player.Y - g.Ball.Height()
 		g.Ball.YSpeed *= -1
 		return nil
 	}
@@ -190,7 +190,7 @@ func (g *Game) Update() error {
 		if brick.Destroyed {
 			continue
 		}
-		if downColliding(brick.Entity, g.Ball.Entity) {
+		if bottomColliding(brick.Entity, g.Ball.Entity) {
 			brick.Destroyed = true
 			g.Ball.Y = brick.Y + brick.Height()
 			g.Ball.YSpeed *= -1
@@ -239,6 +239,10 @@ func NewGame() *Game {
 		}
 	}
 	return game
+}
+
+func slowMode() {
+	ebiten.SetMaxTPS(30)
 }
 
 func main() {
