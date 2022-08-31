@@ -82,10 +82,13 @@ func NewPlayer() Player {
 // bottomColliding checks if the bottom of entity is colliding with the top of
 // other
 func bottomColliding(entity, other Entity) bool {
-	// Check that entity is within the x bounds of other
-	if entity.X >= other.X && entity.X <= other.X+other.Width() {
-		// Check that bottom of entity is touching top of other
-		if entity.Y+entity.Height() >= other.Y {
+	// entity can have 90% of it hanging off and still bounce
+	extra := entity.Width() - entity.Width()/10
+	// Check that entity is within the vertical bounds of other
+	if entity.X >= other.X-extra && entity.X <= other.X+other.Width()-extra {
+		// Check that bottom of entity is past top of other
+		// and top edge is NOT past far edge
+		if entity.Y+entity.Height() >= other.Y && entity.Y+entity.Height() <= other.Y+other.Height() {
 			return true
 		}
 	}
