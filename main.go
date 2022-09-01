@@ -79,16 +79,10 @@ func NewPlayer() Player {
 	return player
 }
 
-// bottomColliding checks if the bottom of entity is colliding with the top of
-// other
-func bottomColliding(entity, other Entity) bool {
-	// entity can have 90% of it hanging off and still bounce
-	extra := entity.Width() - entity.Width()/10
-	// Check that entity is within the vertical bounds of other
-	if entity.X >= other.X-extra && entity.X <= other.X+other.Width()-extra {
-		// Check that bottom of entity is past top of other
-		// and top edge is NOT past far edge
-		if entity.Y+entity.Height() >= other.Y && entity.Y+entity.Height() <= other.Y+other.Height() {
+// colliding checks if two Entities overlap.
+func colliding(entity, other Entity) bool {
+	if entity.X < other.X+other.Width() && other.X < entity.X+entity.Width() {
+		if entity.Y < other.Y+other.Height() && other.Y < entity.Y+entity.Height() {
 			return true
 		}
 	}
@@ -182,7 +176,7 @@ func (g *Game) Update() error {
 	g.Ball.Update()
 
 	// check for ball hitting player paddle
-	if bottomColliding(g.Ball.Entity, g.Player.Entity) {
+	if colliding(g.Ball.Entity, g.Player.Entity) {
 		g.Ball.Y = g.Player.Y - g.Ball.Height()
 		g.Ball.YSpeed *= -1
 		return nil
@@ -193,7 +187,8 @@ func (g *Game) Update() error {
 		if brick.Destroyed {
 			continue
 		}
-		if bottomColliding(brick.Entity, g.Ball.Entity) {
+		if colliding(brick.Entity, g.Ball.Entity) {
+			// TODO: Push ball out of brick correctly.
 			brick.Destroyed = true
 			g.Ball.Y = brick.Y + brick.Height()
 			g.Ball.YSpeed *= -1
